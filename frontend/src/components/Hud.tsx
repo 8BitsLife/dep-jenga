@@ -13,11 +13,7 @@ export function TopBar() {
   return (
     <motion.header className="topbar" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }}>
       <button className="brand" onClick={home} title="New scan">
-        <span className="brand-mark">
-          <i />
-          <i />
-          <i />
-        </span>
+        <img className="brand-logo" src="/logo-192.png" alt="" width={30} height={30} />
         <span className="brand-name">DEPJENGA</span>
       </button>
       <div className="repo-pill glass">

@@ -1,4 +1,6 @@
-# DepJenga
+<p align="center"><img src="frontend/public/logo-192.png" width="96" alt="DepJenga logo" /></p>
+
+<h1 align="center">DepJenga</h1>
 
 **Your dependency tree is a Jenga tower.** Paste a GitHub repo and DepJenga stacks every package as a
 physics block. Blocks **glow by real CVE severity** and get **thinner when their maintainers are a bus factor

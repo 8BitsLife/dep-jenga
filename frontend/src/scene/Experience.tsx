@@ -1,4 +1,4 @@
-import { CameraControls, Environment, Grid, Html, Lightformer, MeshReflectorMaterial, Sparkles, Stars } from '@react-three/drei';
+import { CameraControls, Environment, Html, Lightformer } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Noise, Outline, Selection, Vignette } from '@react-three/postprocessing';
 import { CuboidCollider, Physics, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
@@ -12,12 +12,14 @@ import { BlastLines } from './BlastLines';
 import { Block } from './Block';
 import { hold } from './hold';
 
+export const STUDIO = '#141216';
+
 export function Experience() {
   return (
     <Canvas
       shadows
       dpr={[1, 1.75]}
-      camera={{ position: [16, 12, 16], fov: 38, near: 0.1, far: 400 }}
+      camera={{ position: [16, 12, 16], fov: 34, near: 0.1, far: 400 }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
       onPointerMissed={() => {
         const s = useStore.getState();
@@ -25,16 +27,16 @@ export function Experience() {
         if (s.tool === 'blast') s.showBlast(undefined);
       }}
     >
-      <color attach="background" args={['#07060d']} />
-      <fog attach="fog" args={['#07060d', 38, 150]} />
+      <color attach="background" args={[STUDIO]} />
+      <fog attach="fog" args={[STUDIO, 30, 95]} />
       <Suspense fallback={null}>
         <Selection>
           <SceneContents />
           <EffectComposer multisampling={4}>
-            <Bloom mipmapBlur luminanceThreshold={0.9} luminanceSmoothing={0.2} intensity={1.15} radius={0.72} />
-            <Outline visibleEdgeColor={0xffffff} hiddenEdgeColor={0x7a5cff} edgeStrength={6} blur width={1200} />
-            <Vignette offset={0.22} darkness={0.72} />
-            <Noise opacity={0.028} />
+            <Bloom mipmapBlur luminanceThreshold={1.05} luminanceSmoothing={0.15} intensity={0.9} radius={0.6} />
+            <Outline visibleEdgeColor={0xf3e6dc} hiddenEdgeColor={0xff4436} edgeStrength={5} blur width={1200} />
+            <Vignette offset={0.3} darkness={0.55} />
+            <Noise opacity={0.02} />
           </EffectComposer>
         </Selection>
       </Suspense>
@@ -46,7 +48,7 @@ function SceneContents() {
   const phase = useStore((s) => s.phase);
   const blocks = useStore((s) => s.blocks);
   const towerKey = useStore((s) => s.towerKey);
-  const deco = useMemo(() => decorativeTower(15), []);
+  const deco = useMemo(() => decorativeTower(12), []);
   const showData = phase === 'ready' && blocks.length > 0;
   const shown = showData ? blocks : deco;
   const h = towerHeight(shown);
@@ -55,13 +57,10 @@ function SceneContents() {
     <>
       <Lights height={h} />
       <Environment resolution={256} frames={1}>
-        <Lightformer intensity={2.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[20, 20, 1]} />
-        <Lightformer intensity={2.4} color="#8a5cff" position={[-12, 4, -6]} rotation-y={Math.PI / 2} scale={[10, 6, 1]} />
-        <Lightformer intensity={2.4} color="#4a63ff" position={[12, 4, -6]} rotation-y={-Math.PI / 2} scale={[10, 6, 1]} />
-        <Lightformer intensity={1.2} color="#ffe7c4" position={[0, 3, 12]} scale={[14, 3, 1]} />
+        <Lightformer intensity={2} position={[0, 14, 0]} rotation-x={Math.PI / 2} scale={[24, 24, 1]} />
+        <Lightformer intensity={1.4} color="#ffe9dc" position={[-14, 5, 4]} rotation-y={Math.PI / 2} scale={[12, 8, 1]} />
+        <Lightformer intensity={0.8} color="#dfe6ff" position={[14, 5, -4]} rotation-y={-Math.PI / 2} scale={[12, 8, 1]} />
       </Environment>
-      <Stars radius={140} depth={60} count={2600} factor={4.2} saturation={0.4} fade speed={0.5} />
-      <Sparkles count={70} scale={[16, Math.max(12, h + 6), 16]} position={[0, Math.max(6, h / 2), 0]} size={2.2} speed={0.25} opacity={0.5} color="#b9a6ff" />
       <Floor />
       <Physics key={towerKey} gravity={[0, -9.81, 0]} erp={0.1} numAdditionalFrictionIterations={4}>
         <Ground />
@@ -77,72 +76,58 @@ function SceneContents() {
   );
 }
 
+/** Product-photography lighting: warm key, cool fill, soft rim. No colored gels on the blocks. */
 function Lights({ height }: { height: number }) {
   return (
     <>
-      <ambientLight intensity={0.22} />
-      <hemisphereLight args={['#8a7dff', '#120a20', 0.45]} />
+      <ambientLight intensity={0.25} />
+      <hemisphereLight args={['#fff4ea', '#1a1618', 0.4]} />
       <spotLight
-        position={[10, height + 18, 12]}
-        angle={0.5}
+        position={[9, height + 16, 13]}
+        angle={0.48}
         penumbra={1}
-        intensity={760}
+        intensity={560}
         decay={2}
-        color="#fff1df"
+        color="#fff2e6"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004}
+        shadow-radius={8}
       />
-      <pointLight position={[-14, height * 0.6 + 2, -8]} intensity={200} color="#8a5cff" distance={70} decay={2} />
-      <pointLight position={[14, height * 0.4 + 2, -10]} intensity={200} color="#4a63ff" distance={70} decay={2} />
-      <pointLight position={[0, 1.2, 0]} intensity={30} color="#7a5cff" distance={14} decay={2} />
+      <directionalLight position={[-12, height * 0.6 + 4, 6]} intensity={0.55} color="#dfe6ff" />
+      <pointLight position={[-6, height + 4, -12]} intensity={160} color="#ffd9c7" distance={60} decay={2} />
     </>
   );
 }
 
+let poolTex: THREE.CanvasTexture | null = null;
+function lightPool() {
+  if (poolTex) return poolTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0, 'rgba(255,236,224,0.55)');
+  grad.addColorStop(0.45, 'rgba(255,220,205,0.16)');
+  grad.addColorStop(1, 'rgba(255,220,205,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  poolTex = new THREE.CanvasTexture(c);
+  poolTex.colorSpace = THREE.SRGBColorSpace;
+  return poolTex;
+}
+
+/** Seamless studio sweep: the floor matches the backdrop and fades into fog, with a soft pool of light under the tower. */
 function Floor() {
-  const ring = useRef<THREE.MeshBasicMaterial>(null);
-  useFrame(({ clock }) => {
-    if (ring.current) ring.current.opacity = 0.55 + 0.3 * Math.sin(clock.elapsedTime * 1.6);
-  });
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} receiveShadow>
-        <circleGeometry args={[90, 64]} />
-        <MeshReflectorMaterial
-          blur={[400, 120]}
-          resolution={1024}
-          mixBlur={1}
-          mixStrength={22}
-          roughness={1}
-          depthScale={1.1}
-          minDepthThreshold={0.4}
-          maxDepthThreshold={1.4}
-          color="#0b0914"
-          metalness={0.55}
-          mirror={0}
-        />
+        <circleGeometry args={[120, 64]} />
+        <meshStandardMaterial color={STUDIO} roughness={0.95} metalness={0} />
       </mesh>
-      <Grid
-        position={[0, 0.003, 0]}
-        args={[120, 120]}
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#2a2350"
-        sectionSize={6}
-        sectionThickness={1}
-        sectionColor="#5b45d6"
-        fadeDistance={70}
-        fadeStrength={1.6}
-        infiniteGrid
-      />
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 0]}>
-        <ringGeometry args={[3.1, 3.24, 96]} />
-        <meshBasicMaterial ref={ring} color="#9b7bff" transparent toneMapped={false} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.008, 0]}>
-        <ringGeometry args={[4.1, 4.15, 96]} />
-        <meshBasicMaterial color="#ff2e88" transparent opacity={0.35} toneMapped={false} />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.004, 0]}>
+        <planeGeometry args={[26, 26]} />
+        <meshBasicMaterial map={lightPool()} transparent depthWrite={false} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -207,11 +192,14 @@ function CameraRig({ height, landing }: { height: number; landing: boolean }) {
     const c = ref.current;
     if (!c) return;
     const h = Math.max(height, 4);
-    const dist = Math.max(17, h * 1.5 + 12);
     const wide = size.width > 900;
-    const tx = landing && wide ? -5.5 : 0;
-    const ox = !landing && wide ? -h * 0.18 : 0;
-    c.setLookAt(dist * 0.72 + tx + ox, h * 0.55 + 4, dist * 0.72 - ox, tx + ox, h * 0.45, 0, true);
+    const dist = Math.max(18, h * 1.5 + 12) * (landing ? (wide ? 1.4 : 2.1) : 1.18);
+    c.setLookAt(dist * 0.72, h * 0.5 + 5, dist * 0.72, 0, h * 0.42, 0, true);
+    // screen-space offset: keeps the tower beside the copy / panels while it orbits
+    const fx = wide ? (landing ? -dist * 0.15 : -h * 0.16) : 0;
+    // on phones the landing tower is a hero image in the top third, above the copy
+    const fy = !wide && landing ? dist * 0.15 : 0;
+    c.setFocalOffset(fx, fy, 0, true);
   }, [towerKey, landing, height, size.width]);
 
   // glide toward the selected block
@@ -297,7 +285,7 @@ function Follow({ id, kind }: { id: string; kind: 'hover' | 'selected' }) {
           <span className="tag3d-dot" />
           <span className="tag3d-name">{p.name}</span>
           <span className="tag3d-ver">{p.version ?? 'unresolved'}</span>
-          {p.vulns.length > 0 && <span className="tag3d-sev">{meta.short} Â· {p.vulns.length}</span>}
+          {p.vulns.length > 0 && <span className="tag3d-sev">{meta.short} · {p.vulns.length}</span>}
         </div>
       </Html>
     </group>

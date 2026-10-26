@@ -3,17 +3,17 @@ import type { PackageNode, Severity } from './types';
 export const SEV_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN', 'NONE', 'NOT_SCANNED'];
 
 export const SEV_META: Record<Severity, { label: string; color: string; glow: number; short: string }> = {
-  CRITICAL: { label: 'Critical', color: '#ff2e63', glow: 2.6, short: 'CRIT' },
-  HIGH: { label: 'High', color: '#ff8a1f', glow: 1.8, short: 'HIGH' },
-  MEDIUM: { label: 'Medium', color: '#ffd23f', glow: 1.1, short: 'MED' },
-  LOW: { label: 'Low', color: '#3ddcff', glow: 0.7, short: 'LOW' },
-  UNKNOWN: { label: 'Unscored advisory', color: '#b48cff', glow: 0.9, short: '???' },
-  NONE: { label: 'No known advisories', color: '#38406e', glow: 0, short: 'OK' },
-  NOT_SCANNED: { label: 'Not scanned', color: '#3a3a4a', glow: 0, short: 'N/A' },
+  CRITICAL: { label: 'Critical', color: '#ff4436', glow: 2.2, short: 'CRIT' },
+  HIGH: { label: 'High', color: '#ff8a3d', glow: 1.5, short: 'HIGH' },
+  MEDIUM: { label: 'Medium', color: '#f2c94c', glow: 0.9, short: 'MED' },
+  LOW: { label: 'Low', color: '#6cc4e8', glow: 0.6, short: 'LOW' },
+  UNKNOWN: { label: 'Unscored advisory', color: '#b49cf0', glow: 0.7, short: '???' },
+  NONE: { label: 'No known advisories', color: '#eadfd3', glow: 0, short: 'OK' },
+  NOT_SCANNED: { label: 'Not scanned', color: '#3a3640', glow: 0, short: 'N/A' },
 };
 
 export const RISK_COLOR = (score?: number) =>
-  score == null ? '#6b6b80' : score >= 65 ? '#ff2e63' : score >= 45 ? '#ff8a1f' : score >= 25 ? '#ffd23f' : '#4dffb5';
+  score == null ? '#6b6b80' : score >= 65 ? '#ff4436' : score >= 45 ? '#ff8a3d' : score >= 25 ? '#f2c94c' : '#5bd69a';
 
 export const sevRank = (s: Severity) => SEV_ORDER.indexOf(s);
 

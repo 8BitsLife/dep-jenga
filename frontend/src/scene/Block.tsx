@@ -12,7 +12,14 @@ import { useStore } from '../store';
 import { hatchTexture } from './textures';
 import { hold } from './hold';
 
-const DIM = new THREE.Color('#06050b');
+const DIM = new THREE.Color('#141216');
+
+// landing tower palette, taken from the logo
+const CREAM = '#ddd0c2';
+const CHARCOAL = '#25222a';
+const BRAND_RED = '#ff4436';
+/** The one block on the landing tower that is half pulled out, like the logo. */
+const HERO_INDEX = 23;
 const tmp = new THREE.Color();
 
 interface Props {
@@ -28,6 +35,8 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
   const landed = useRef(false);
   const wobble = useRef(0);
   const dimAmt = useRef(0);
+  const slide = useRef(0);
+  const kick = useRef(0);
 
   const pkg = spec.pkg;
   const sev = pkg?.severity ?? 'NONE';
@@ -35,14 +44,20 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
   const vulnerable = !!pkg && pkg.vulns.length > 0;
   const hatched = !decorative && (!spec.riskKnown || sev === 'NOT_SCANNED');
   const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+  const decoIndex = decorative ? Number(spec.id.slice(5)) : -1;
+  const isHero = decoIndex === HERO_INDEX;
 
   const baseColor = useMemo(() => {
-    if (decorative) return new THREE.Color().setHSL(0.7 + Math.random() * 0.08, 0.32, 0.09 + Math.random() * 0.05);
-    const c = new THREE.Color(meta.color);
+    if (decorative) {
+      if (isHero) return new THREE.Color(BRAND_RED);
+      const dark = (decoIndex * 7 + spec.layer * 3) % 5 === 0;
+      return new THREE.Color(dark ? CHARCOAL : CREAM).offsetHSL(0, 0, (Math.random() - 0.5) * 0.025);
+    }
+    const c = new THREE.Color(sev === 'NONE' ? CREAM : meta.color);
     if (!vulnerable) c.offsetHSL(0, 0, (Math.random() - 0.5) * 0.04);
     return c;
-  }, [decorative, meta.color, vulnerable]);
-  const emissive = useMemo(() => new THREE.Color(decorative ? '#7a5cff' : vulnerable ? meta.color : '#4dffb5'), [decorative, vulnerable, meta.color]);
+  }, [decorative, isHero, decoIndex, spec.layer, meta.color, vulnerable, sev]);
+  const emissive = useMemo(() => new THREE.Color(isHero ? BRAND_RED : vulnerable ? meta.color : CREAM), [isHero, vulnerable, meta.color]);
 
   const selected = useStore((s) => s.selectedId === spec.id);
   const hovered = useStore((s) => s.hoverId === spec.id);
@@ -79,6 +94,13 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
         landed.current = true;
         if (spec.slot === 1) sfx.tock(0.8 + (spec.layer % 5) * 0.08, 0.35);
       }
+      if (isHero) {
+        // the logo's red block: half out, eases further out on hover, pops on click
+        const target = 1.15 + (hovered ? 0.55 : 0) + kick.current * 1.4;
+        kick.current = Math.max(0, kick.current - dt * 1.6);
+        slide.current = THREE.MathUtils.lerp(slide.current, target, 0.12);
+        g.position.x = slide.current + Math.sin(state.clock.elapsedTime * 1.4) * 0.04;
+      }
       if (wobble.current > 0) {
         wobble.current = Math.max(0, wobble.current - dt * 2.5);
         g.rotation.y = Math.sin(now * 0.04) * 0.08 * wobble.current;
@@ -91,15 +113,15 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
       dimAmt.current = THREE.MathUtils.lerp(dimAmt.current, dimmed ? 0.82 : 0, 0.12);
       m.color.copy(tmp.copy(baseColor).lerp(DIM, dimAmt.current));
       let target: number;
-      if (decorative) target = 0.12 + 0.1 * Math.sin(t * 1.3 + phase + spec.layer * 0.4);
+      if (decorative) target = isHero ? 0.18 + 0.08 * Math.sin(t * 1.6) : 0;
       else {
         const speed = sev === 'CRITICAL' ? 4.2 : sev === 'HIGH' ? 3 : 2;
-        target = vulnerable ? meta.glow * (0.6 + 0.4 * Math.sin(t * speed + phase)) : 0.02;
+        target = vulnerable ? meta.glow * (0.6 + 0.4 * Math.sin(t * speed + phase)) : 0;
         if (inBlast) target = 1.4 + 0.9 * Math.sin(t * 9 + phase);
         target *= 1 - dimAmt.current * 0.9;
       }
-      if (hovered) target += 0.55;
-      if (selected) target += 1.1;
+      if (hovered) target += decorative ? 0.05 : 0.4;
+      if (selected) target += 0.9;
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, target, 0.18);
       if (inBlast) m.emissive.set('#ff6a2a');
       else m.emissive.copy(emissive);
@@ -128,8 +150,13 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
     e.stopPropagation();
     if (e.delta > 6) return; // was an orbit drag
     if (decorative) {
-      wobble.current = 1;
-      sfx.tock(0.9 + Math.random() * 0.4);
+      if (isHero) {
+        kick.current = 1;
+        sfx.whoosh();
+      } else {
+        wobble.current = 1;
+        sfx.tock(0.9 + Math.random() * 0.4);
+      }
       return;
     }
     const s = useStore.getState();
@@ -177,10 +204,10 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
               color={baseColor}
               emissive={emissive}
               emissiveIntensity={0}
-              roughness={vulnerable ? 0.28 : 0.42}
-              metalness={0.08}
-              clearcoat={1}
-              clearcoatRoughness={0.18}
+              roughness={vulnerable ? 0.38 : 0.58}
+              metalness={0}
+              clearcoat={0.35}
+              clearcoatRoughness={0.45}
               map={hatched ? hatchTexture() : null}
             />
           </RoundedBox>

@@ -89,7 +89,7 @@ export function GraphView() {
       for (const l of links) {
         const s = l.source as N, t = l.target as N;
         const hot = blastId && (blastSet.has(s.id) || s.id === blastId) && (t.id === blastId || blastSet.has(t.id));
-        ctx.strokeStyle = hot ? 'rgba(255,138,31,0.8)' : focus && (s.id === focus || t.id === focus) ? 'rgba(255,255,255,0.55)' : 'rgba(155,123,255,0.13)';
+        ctx.strokeStyle = hot ? 'rgba(255,138,31,0.8)' : focus && (s.id === focus || t.id === focus) ? 'rgba(255,255,255,0.55)' : 'rgba(234,223,211,0.12)';
         ctx.beginPath();
         ctx.moveTo(s.x!, s.y!);
         ctx.lineTo(t.x!, t.y!);
@@ -99,8 +99,8 @@ export function GraphView() {
         const alpha = lit(n.id) ? 1 : 0.15;
         ctx.globalAlpha = alpha;
         if (!n.p) {
-          ctx.fillStyle = '#9b7bff';
-          ctx.shadowColor = '#9b7bff';
+          ctx.fillStyle = '#ff4436';
+          ctx.shadowColor = '#ff4436';
           ctx.shadowBlur = 24;
           ctx.beginPath();
           ctx.arc(n.x!, n.y!, n.r, 0, Math.PI * 2);
@@ -110,7 +110,7 @@ export function GraphView() {
         }
         const m = SEV_META[n.p.severity];
         const vuln = n.p.vulns.length > 0;
-        ctx.fillStyle = vuln ? m.color : n.p.severity === 'NOT_SCANNED' ? '#3a3a4a' : '#2e3558';
+        ctx.fillStyle = vuln ? m.color : n.p.severity === 'NOT_SCANNED' ? '#3a3a4a' : '#d9cdbf';
         if (vuln) {
           ctx.shadowColor = m.color;
           ctx.shadowBlur = 16;
@@ -142,8 +142,8 @@ export function GraphView() {
           ctx.stroke();
         }
         if ((vuln || n.r > 9 || n.id === selectedId || n.id === hover?.id) && v.k > 0.6) {
-          ctx.fillStyle = 'rgba(239,234,255,0.9)';
-          ctx.font = `${11 / v.k}px "Space Grotesk", sans-serif`;
+          ctx.fillStyle = 'rgba(243,236,228,0.9)';
+          ctx.font = `${11 / v.k}px "Geist", sans-serif`;
           ctx.fillText(n.p.name, n.x! + n.r + 4, n.y! + 4 / v.k);
         }
       }

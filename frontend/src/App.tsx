@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { FixPanel } from './components/FixPanel';
 import { GraphView } from './components/GraphView';
@@ -42,6 +42,7 @@ export default function App() {
   useKeyboard();
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className={`app phase-${phase}`}>
       <div className={`stage ${shaking ? 'shake' : ''}`}>
         <Experience />
@@ -90,6 +91,7 @@ export default function App() {
       )}
       <Toasts />
     </div>
+    </MotionConfig>
   );
 }
 

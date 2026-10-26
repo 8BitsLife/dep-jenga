@@ -1,124 +1,159 @@
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useState } from 'react';
 import { sfx } from '../lib/sound';
 import { useStore } from '../store';
 
 const EXAMPLES = [
-  { repo: 'expressjs/express', tag: 'npm' },
-  { repo: 'juice-shop/juice-shop', tag: 'npm · intentionally vulnerable' },
-  { repo: 'gin-gonic/gin', tag: 'Go' },
-  { repo: 'pallets/flask', tag: 'PyPI' },
-  { repo: 'BurntSushi/ripgrep', tag: 'Rust' },
-  { repo: 'rails/rails', tag: 'RubyGems' },
+  { repo: 'expressjs/express', eco: 'npm' },
+  { repo: 'juice-shop/juice-shop', eco: 'npm' },
+  { repo: 'gin-gonic/gin', eco: 'Go' },
+  { repo: 'pallets/flask', eco: 'PyPI' },
+  { repo: 'BurntSushi/ripgrep', eco: 'Rust' },
+  { repo: 'rails/rails', eco: 'Ruby' },
 ];
 
-const TITLE = 'DEPJENGA';
+const REPO_URL = 'https://github.com/8BitsLife/dep-jenga';
+
+// one orchestrated entrance: each piece of the hero settles in order, like stacking
+const stack: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+};
+const piece: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 26 } },
+};
 
 export function Landing() {
   const start = useStore((s) => s.start);
   const [value, setValue] = useState('');
-  const [shake, setShake] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = (repo = value) => {
-    if (!repo.trim()) {
-      setShake((s) => s + 1);
+    const r = repo.trim();
+    if (!r) {
+      setError('Paste a repository first, like expressjs/express');
       sfx.error();
       return;
     }
-    sfx.whoosh();
-    start(repo.trim());
+    setError(null);
+    sfx.pop(0.9);
+    start(r);
   };
 
   return (
-    <motion.section className="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20, filter: 'blur(8px)' }} transition={{ duration: 0.5 }}>
-      <div className="landing-inner">
-        <motion.div className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <span className="pulse-dot" /> Hacktoberfest build · dependency security, as a game
-        </motion.div>
-        <h1 className="title" aria-label={TITLE}>
-          {TITLE.split('').map((ch, i) => (
-            <motion.span
-              key={i}
-              className="title-ch"
-              initial={{ y: -80, opacity: 0, rotate: (i % 2 ? 1 : -1) * 12 }}
-              animate={{ y: 0, opacity: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 14, delay: 0.15 + i * 0.045 }}
-              whileHover={{ y: -8, rotate: (i % 2 ? 1 : -1) * 8, transition: { type: 'spring', stiffness: 500, damping: 8 } }}
-              onHoverStart={() => sfx.tick(0.8 + i * 0.06)}
-            >
-              {ch}
-            </motion.span>
-          ))}
-        </h1>
-        <motion.p className="tagline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-          Your dependency tree is a Jenga tower. Paste a GitHub repo and we stack every package as a block —
-          <em> glowing</em> by real CVE severity, <em>thinner</em> when its maintainers are a bus factor away from vanishing.
-          Then pull blocks and watch what falls.
+    <motion.section className="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
+      <header className="land-nav">
+        <a className="land-brand" href="/" aria-label="DepJenga home">
+          <img src="/logo-192.png" alt="" width={36} height={36} />
+          <span>DepJenga</span>
+        </a>
+        <a className="land-link" href={REPO_URL} target="_blank" rel="noreferrer">
+          Source on GitHub <span aria-hidden>↗</span>
+        </a>
+      </header>
+
+      <motion.div className="land-main" variants={stack} initial="hidden" animate="show">
+        <motion.p className="kicker" variants={piece}>
+          <span className="kicker-block" aria-hidden />
+          Dependency security, built for Hacktoberfest
+        </motion.p>
+
+        <motion.h1 className="headline" variants={piece}>
+          See which dependency would topple your project.
+        </motion.h1>
+
+        <motion.p className="lede" variants={piece}>
+          Paste a GitHub repository. Every package it depends on becomes a block in a tower: red where there's a known
+          vulnerability, thinner where a package rests on too few maintainers. Pull one out and see what comes down with it.
         </motion.p>
 
         <motion.form
-          key={shake}
-          className="search"
+          className={`search ${error ? 'has-error' : ''}`}
+          variants={piece}
           onSubmit={(e) => {
             e.preventDefault();
             submit();
           }}
-          initial={shake ? { x: 0 } : { opacity: 0, y: 20 }}
-          animate={shake ? { x: [0, -12, 10, -8, 6, 0] } : { opacity: 1, y: 0 }}
-          transition={shake ? { duration: 0.4 } : { delay: 0.85, type: 'spring', stiffness: 200, damping: 18 }}
         >
-          <span className="search-icon">⌁</span>
+          <label htmlFor="repo" className="sr-only">
+            GitHub repository
+          </label>
+          <span className="search-prefix" aria-hidden>
+            github.com/
+          </span>
           <input
+            id="repo"
             autoFocus
             value={value}
             onChange={(e) => {
-              setValue(e.target.value);
-              sfx.tick(1.5 + Math.random() * 0.3);
+              setValue(e.target.value.replace(/^(https?:\/\/)?(www\.)?github\.com\//, ''));
+              if (error) setError(null);
             }}
-            placeholder="github.com/owner/repo"
+            placeholder="owner/repo"
             spellCheck={false}
-            aria-label="GitHub repository URL"
+            autoComplete="off"
+            aria-invalid={!!error}
+            aria-describedby={error ? 'repo-error' : undefined}
           />
-          <button type="submit" className="cta">
-            <span>Build my tower</span>
-            <span className="cta-arrow">→</span>
+          <button type="submit" className="build-btn">
+            Build tower
           </button>
         </motion.form>
+        {error && (
+          <p id="repo-error" className="field-error" role="alert">
+            {error}
+          </p>
+        )}
 
-        <motion.div className="examples" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05 }}>
-          <span className="examples-label">Try</span>
-          {EXAMPLES.map((ex, i) => (
-            <motion.button
+        <motion.div className="examples" variants={piece}>
+          <span className="examples-label">Or try</span>
+          {EXAMPLES.map((ex) => (
+            <button
               key={ex.repo}
               type="button"
-              className="chip"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 + i * 0.05 }}
-              whileHover={{ y: -3 }}
-              whileTap={{ scale: 0.94 }}
-              onHoverStart={() => sfx.tick(1.2)}
+              className="example"
+              onPointerEnter={() => sfx.tick(1.2)}
               onClick={() => {
                 setValue(ex.repo);
                 submit(ex.repo);
               }}
             >
-              {ex.repo}
-              <small>{ex.tag}</small>
-            </motion.button>
+              <span className="example-repo">{ex.repo}</span>
+              <span className="example-eco">{ex.eco}</span>
+            </button>
           ))}
         </motion.div>
+      </motion.div>
 
-        <motion.div className="landing-foot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}>
-          <div className="foot-sources">
-            Real data only: <b>OSV.dev</b> · <b>GitHub Advisory Database</b> · <b>deps.dev</b> · <b>OpenSSF Scorecard</b> · <b>npm registry</b>
-          </div>
-          <div className="foot-honesty">
-            <span className="hatch-swatch" /> Hatched = data unavailable. Nothing is estimated, nothing is invented.
-          </div>
-        </motion.div>
-      </div>
-      <div className="landing-hint">click the tower blocks · they're not shy</div>
+      <motion.aside
+        className="key-card"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, type: 'spring', stiffness: 200, damping: 24 }}
+      >
+        <h2>Reading the tower</h2>
+        <ul>
+          <li>
+            <span className="key-swatch red" /> Known vulnerability, colored by severity
+          </li>
+          <li>
+            <span className="key-swatch cream" /> No known advisories
+          </li>
+          <li>
+            <span className="key-swatch thin" /> Thinner: fewer maintainers or stale releases
+          </li>
+          <li>
+            <span className="key-swatch striped" /> Striped: data isn't available
+          </li>
+        </ul>
+        <p>The packages everything else relies on sit at the bottom.</p>
+      </motion.aside>
+
+      <footer className="land-foot">
+        Vulnerabilities from OSV.dev and the GitHub Advisory Database. Maintainer data from deps.dev, OpenSSF Scorecard and npm.
+        Gaps are marked, never guessed.
+      </footer>
     </motion.section>
   );
 }
