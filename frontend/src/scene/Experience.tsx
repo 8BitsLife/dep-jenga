@@ -10,6 +10,7 @@ import { decorativeTower, towerHeight } from '../lib/tower';
 import { useStore } from '../store';
 import { BlastLines } from './BlastLines';
 import { Block } from './Block';
+import { field } from './field';
 import { hold } from './hold';
 
 export const STUDIO = '#141216';
@@ -71,6 +72,7 @@ function SceneContents() {
       </Physics>
       {showData && <BlastLines />}
       {showData && <Overlays />}
+      {!showData && <PointerField />}
       <CameraRig height={h} landing={!showData} />
     </>
   );
@@ -131,6 +133,39 @@ function Floor() {
       </mesh>
     </group>
   );
+}
+
+/** Feeds the landing tower's cursor force field: the pointer ray and how fast the cursor is moving. */
+function PointerField() {
+  const gl = useThree((s) => s.gl);
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const last = useRef(new THREE.Vector2(9, 9));
+  useEffect(() => {
+    const el = gl.domElement;
+    const enter = () => (field.active = true);
+    const leave = () => {
+      field.active = false;
+      field.speed = 0;
+    };
+    el.addEventListener('pointerenter', enter);
+    el.addEventListener('pointermove', enter);
+    el.addEventListener('pointerleave', leave);
+    return () => {
+      leave();
+      el.removeEventListener('pointerenter', enter);
+      el.removeEventListener('pointermove', enter);
+      el.removeEventListener('pointerleave', leave);
+    };
+  }, [gl]);
+  useFrame(({ pointer, camera }, dt) => {
+    raycaster.setFromCamera(pointer, camera);
+    field.ray.copy(raycaster.ray);
+    const moved = last.current.distanceTo(pointer);
+    last.current.copy(pointer);
+    const instant = moved > 1 ? 0 : moved / Math.max(dt, 1 / 240);
+    field.speed = THREE.MathUtils.lerp(field.speed, instant, instant > field.speed ? 0.5 : 0.08);
+  });
+  return null;
 }
 
 /** Kinematic ground so "Quake" can literally shake the table. */
@@ -285,7 +320,7 @@ function Follow({ id, kind }: { id: string; kind: 'hover' | 'selected' }) {
           <span className="tag3d-dot" />
           <span className="tag3d-name">{p.name}</span>
           <span className="tag3d-ver">{p.version ?? 'unresolved'}</span>
-          {p.vulns.length > 0 && <span className="tag3d-sev">{meta.short} · {p.vulns.length}</span>}
+          {p.vulns.length > 0 && <span className="tag3d-sev">{meta.short} Â· {p.vulns.length}</span>}
         </div>
       </Html>
     </group>

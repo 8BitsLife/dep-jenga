@@ -11,6 +11,7 @@ import type { BlockSpec } from '../lib/tower';
 import { useStore } from '../store';
 import { hatchTexture } from './textures';
 import { hold } from './hold';
+import { repulsion } from './field';
 
 const DIM = new THREE.Color('#141216');
 
@@ -21,6 +22,14 @@ const BRAND_RED = '#ff4436';
 /** The one block on the landing tower that is half pulled out, like the logo. */
 const HERO_INDEX = 23;
 const tmp = new THREE.Color();
+const _force = new THREE.Vector3();
+const _world = new THREE.Vector3();
+const _local = new THREE.Vector3();
+
+// spring-damper tuned to be underdamped: blocks overshoot a little and settle back, like a nudged stack
+const SPRING_K = 38;
+const SPRING_C = 5.5;
+const MAX_OFFSET = 1.7;
 
 interface Props {
   spec: BlockSpec;
@@ -37,6 +46,9 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
   const dimAmt = useRef(0);
   const slide = useRef(0);
   const kick = useRef(0);
+  const off = useRef(new THREE.Vector3());
+  const vel = useRef(new THREE.Vector3());
+  const knocked = useRef(false);
 
   const pkg = spec.pkg;
   const sev = pkg?.severity ?? 'NONE';
@@ -46,6 +58,8 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
   const phase = useMemo(() => Math.random() * Math.PI * 2, []);
   const decoIndex = decorative ? Number(spec.id.slice(5)) : -1;
   const isHero = decoIndex === HERO_INDEX;
+  const home = useMemo(() => new THREE.Vector3(...spec.position), [spec.position]);
+  const toLocal = useMemo(() => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -spec.rotationY), [spec.rotationY]);
 
   const baseColor = useMemo(() => {
     if (decorative) {
@@ -105,6 +119,33 @@ export const Block = memo(function Block({ spec, decorative }: Props) {
         wobble.current = Math.max(0, wobble.current - dt * 2.5);
         g.rotation.y = Math.sin(now * 0.04) * 0.08 * wobble.current;
         g.position.y += Math.abs(Math.sin(now * 0.03)) * 0.25 * wobble.current;
+      }
+      if (decorative && k >= 1) {
+        // each block is a particle on a spring anchored at its slot; the cursor repels it
+        const o = off.current, v = vel.current;
+        const step = Math.min(dt, 1 / 30) / 2;
+        for (let i = 0; i < 2; i++) {
+          _world.copy(home).add(o);
+          repulsion(_world, _force);
+          v.x += (_force.x - SPRING_K * o.x - SPRING_C * v.x) * step;
+          v.y += (_force.y - SPRING_K * o.y - SPRING_C * v.y) * step;
+          v.z += (_force.z - SPRING_K * o.z - SPRING_C * v.z) * step;
+          o.addScaledVector(v, step);
+        }
+        if (o.length() > MAX_OFFSET) o.setLength(MAX_OFFSET);
+        const out = o.length();
+        if (out > 0.32 && !knocked.current) {
+          knocked.current = true;
+          sfx.clack(Math.min(1, v.length() / 9) * 0.5);
+        } else if (out < 0.12) knocked.current = false;
+        _local.copy(o).applyQuaternion(toLocal);
+        g.position.x = (isHero ? g.position.x : 0) + _local.x;
+        g.position.y += _local.y;
+        g.position.z = _local.z;
+        // shoved blocks tilt in the direction they're pushed
+        g.rotation.x = _local.z * 0.22;
+        g.rotation.z = -_local.x * 0.22;
+        if (wobble.current <= 0) g.rotation.y = _local.x * 0.05 - _local.z * 0.08;
       }
     }
     const m = mat.current;
