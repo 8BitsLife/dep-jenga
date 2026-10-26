@@ -88,7 +88,7 @@ function Lights({ height }: { height: number }) {
         position={[9, height + 16, 13]}
         angle={0.48}
         penumbra={1}
-        intensity={560}
+        intensity={680}
         decay={2}
         color="#fff2e6"
         castShadow
@@ -96,7 +96,7 @@ function Lights({ height }: { height: number }) {
         shadow-bias={-0.0004}
         shadow-radius={8}
       />
-      <directionalLight position={[-12, height * 0.6 + 4, 6]} intensity={0.55} color="#dfe6ff" />
+      <directionalLight position={[-12, height * 0.6 + 4, 6]} intensity={0.85} color="#dfe6ff" />
       <pointLight position={[-6, height + 4, -12]} intensity={160} color="#ffd9c7" distance={60} decay={2} />
     </>
   );
@@ -231,7 +231,8 @@ function CameraRig({ height, landing }: { height: number; landing: boolean }) {
     const dist = Math.max(18, h * 1.5 + 12) * (landing ? (wide ? 1.4 : 2.1) : 1.18);
     c.setLookAt(dist * 0.72, h * 0.5 + 5, dist * 0.72, 0, h * 0.42, 0, true);
     // screen-space offset: keeps the tower beside the copy / panels while it orbits
-    const fx = wide ? (landing ? -dist * 0.15 : -h * 0.16) : 0;
+    // analysis view: centre the tower in the space between the left panel and the right edge
+    const fx = wide ? (landing ? -dist * 0.15 : -dist * 0.09) : 0;
     // on phones the landing tower is a hero image in the top third, above the copy
     const fy = !wide && landing ? dist * 0.15 : 0;
     c.setFocalOffset(fx, fy, 0, true);

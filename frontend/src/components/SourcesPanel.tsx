@@ -62,7 +62,7 @@ export function SourcesPanel() {
           <b>Fixes:</b> the smallest published fixed version above yours for each advisory; the recommendation is the highest of those, re-checked against OSV.
         </li>
         <li>
-          <b>Tower:</b> up to 108 blocks. Bottom = most depended-upon. Color = worst advisory. Width = bus-factor risk. Hatching = data unavailable.
+          <b>Tower:</b> up to 72 blocks. Bottom = most depended-upon. Color = worst advisory. Width = bus-factor risk. Hatching = data unavailable.
         </li>
       </ul>
       <p className="fine">

@@ -62,7 +62,7 @@ GITHUB_TOKEN=ghp_xxx mvn spring-boot:run
 - **Width** = maintainer & bus-factor risk. Thinner blocks mean more fragile maintenance, and the tower really is weaker there.
 - **Hatching** = data unavailable. Nothing is estimated to fill the gap.
 - **Bottom** = most depended-upon packages (the foundations).
-- Up to 108 blocks. Larger trees keep vulnerable and direct packages in the tower; every package still appears in the dashboards and graph.
+- Up to 72 blocks. Larger trees keep vulnerable and direct packages in the tower; every package still appears in the dashboards and graph.
 
 ---
 

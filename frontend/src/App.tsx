@@ -85,7 +85,7 @@ export default function App() {
           </AnimatePresence>
           <AnimatePresence>{selectedId && <Inspector key="inspector" />}</AnimatePresence>
           <IntegrityMeter />
-          <Legend />
+          {!selectedId && <Legend />}
           <Dock />
         </>
       )}

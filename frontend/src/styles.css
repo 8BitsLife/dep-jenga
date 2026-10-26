@@ -151,51 +151,51 @@ code {
 
 /* ============================================================ keycaps */
 .key {
-  --cap: linear-gradient(180deg, #2d2931, #211e25);
-  --lip: #0e0c10;
+  --cap: linear-gradient(180deg, #2b272f, #221f26);
+  --lip: #0f0d11;
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 46px;
-  padding: 0 16px;
-  border-radius: var(--r-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   background: var(--cap);
   color: var(--text);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  box-shadow: 0 5px 0 var(--lip), 0 10px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 3px 0 var(--lip), 0 8px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transform: translateY(0);
   transition: transform 0.09s ease, box-shadow 0.09s ease, background 0.2s, filter 0.2s;
   user-select: none;
   white-space: nowrap;
 }
 .key:hover {
-  filter: brightness(1.15);
+  filter: brightness(1.12);
 }
 .key:active,
 .key.is-pressed {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 var(--lip), 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--lip), 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .key.is-active {
-  --cap: linear-gradient(180deg, #f3ebe2, #ddcfc2);
+  --cap: linear-gradient(180deg, #f3ebe2, #e2d6c9);
   --lip: #a8988a;
   color: #1a1619;
-  box-shadow: 0 5px 0 var(--lip), 0 0 28px rgba(234, 223, 211, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 3px 0 var(--lip), 0 8px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 .key.is-active.is-pressed,
 .key.is-active:active {
-  box-shadow: 0 1px 0 var(--lip), 0 0 30px rgba(234, 223, 211, 0.6);
+  box-shadow: 0 1px 0 var(--lip), 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 .key-primary {
   --cap: linear-gradient(180deg, #ff5a4c, #e2382c);
   --lip: #7a1a12;
 }
 .key-danger {
-  --cap: linear-gradient(180deg, #ff6a4a, #e0233f);
-  --lip: #6d0b1b;
+  --cap: linear-gradient(180deg, #ff5a4c, #e2382c);
+  --lip: #7a1a12;
 }
 .key-ghost {
   --cap: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
@@ -206,20 +206,23 @@ code {
   pointer-events: none;
 }
 .key-icon {
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1;
+  opacity: 0.9;
 }
 .key-hint {
-  position: absolute;
-  top: -8px;
-  right: -6px;
+  margin-left: 2px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
   font-family: var(--mono);
-  font-size: 9.5px;
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: #0e0c10;
-  border: 1px solid var(--line-strong);
-  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+}
+.key.is-active .key-hint {
+  background: rgba(26, 22, 25, 0.08);
+  color: rgba(26, 22, 25, 0.55);
 }
 .key-count {
   font-family: var(--mono);
@@ -789,9 +792,9 @@ code {
 }
 .brand-name {
   font-family: var(--display);
-  font-weight: 900;
-  font-size: 15px;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.015em;
 }
 .repo-pill {
   display: flex;
@@ -828,11 +831,9 @@ code {
   border-radius: 16px;
 }
 .grade-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 12.5px;
   color: var(--faint);
-  font-weight: 700;
+  font-weight: 600;
 }
 .grade-score {
   font-family: var(--mono);
@@ -984,10 +985,9 @@ code {
 }
 .panel-h {
   margin: 12px 0 0;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-size: 12.5px;
   color: var(--faint);
+  font-weight: 600;
 }
 .fine {
   font-size: 12px;
@@ -1056,11 +1056,9 @@ code {
   gap: 2px;
 }
 .tile-label {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--faint);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 600;
 }
 .tile-value {
   font-family: var(--display);
@@ -1204,72 +1202,80 @@ code {
 /* dock */
 .dock-wrap {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 18px;
-  transform: translateX(-50%);
+  width: fit-content;
+  max-width: calc(100vw - 16px);
+  margin-inline: auto; /* centred without `transform`, which framer-motion owns for the entrance */
   display: grid;
   justify-items: center;
   gap: 10px;
   z-index: 11;
-  max-width: calc(100vw - 16px);
+  pointer-events: none;
+}
+.dock-wrap > * {
+  pointer-events: auto;
 }
 .dock-hint {
-  font-size: 12.5px;
-  color: var(--muted);
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(20, 18, 22, 0.7);
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(30, 27, 33, 0.85);
   border: 1px solid var(--line);
   backdrop-filter: blur(8px);
+  font-size: 13px;
+  color: var(--muted);
   text-align: center;
 }
 .dock {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px 16px;
-  border-radius: 22px;
+  gap: 8px;
+  padding: 10px 10px 13px;
+  border-radius: 20px;
   max-width: 100%;
 }
 .dock-sep {
   width: 1px;
-  height: 30px;
+  height: 28px;
   background: var(--line-strong);
-  margin: 0 2px;
+  margin: 0 4px;
 }
 
 .legend {
   position: fixed;
+  top: 82px;
   right: 16px;
-  bottom: 18px;
-  width: 230px;
-  padding: 10px 14px;
+  width: 248px;
+  padding: 0;
   z-index: 8;
   border-radius: 16px;
+  overflow: hidden;
 }
 .legend-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 11px 14px;
   background: none;
   border: 0;
-  padding: 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--faint);
-  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
   text-align: left;
 }
 .legend-body {
   display: grid;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 12px;
+  gap: 7px;
+  padding: 2px 14px 14px;
+  font-size: 12.5px;
 }
 .legend-title {
-  font-size: 10.5px;
+  font-size: 12.5px;
   color: var(--faint);
   margin-top: 4px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .legend-row {
   display: flex;
@@ -1324,11 +1330,9 @@ code {
   text-align: center;
 }
 .integrity-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-size: 12.5px;
   color: var(--faint);
-  font-weight: 700;
+  font-weight: 600;
 }
 .integrity-value {
   font-family: var(--display);
@@ -1352,7 +1356,7 @@ code {
   position: fixed;
   bottom: 150px;
   left: 50%;
-  transform: translateX(-50%);
+  translate: -50% 0;
   display: grid;
   gap: 8px;
   justify-items: center;
@@ -1478,11 +1482,9 @@ code {
   right: 14px;
 }
 .insp-eco {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12.5px;
   color: var(--faint);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-weight: 600;
 }
 .insp-name {
   margin: 0;
@@ -1527,10 +1529,9 @@ code {
 }
 .insp-section h3 {
   margin: 0;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-size: 12.5px;
   color: var(--faint);
+  font-weight: 600;
 }
 .vuln {
   padding: 10px 12px;
@@ -1942,11 +1943,11 @@ code.small {
   .side-panel.wide {
     width: calc(100vw - 100px);
   }
+}
+@media (max-width: 900px) {
   .legend {
     display: none;
   }
-}
-@media (max-width: 900px) {
   .landing {
     display: block;
     padding: 16px 16px 24px;
@@ -2028,12 +2029,21 @@ code.small {
     display: none;
   }
   .key {
-    padding: 0 13px;
+    height: 42px;
+    padding: 0 11px;
+  }
+  .key-hint,
+  .dock-sep {
+    display: none; /* keyboard shortcuts mean nothing on a touch screen */
   }
   .dock {
-    gap: 8px;
-    padding: 14px 10px 14px;
+    gap: 6px;
+    padding: 9px 8px 11px;
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dock::-webkit-scrollbar {
+    display: none;
   }
   .dock-hint {
     font-size: 11.5px;

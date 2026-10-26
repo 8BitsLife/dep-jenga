@@ -14,7 +14,7 @@ export function TopBar() {
     <motion.header className="topbar" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }}>
       <button className="brand" onClick={home} title="New scan">
         <img className="brand-logo" src="/logo-192.png" alt="" width={30} height={30} />
-        <span className="brand-name">DEPJENGA</span>
+        <span className="brand-name">DepJenga</span>
       </button>
       <div className="repo-pill glass">
         <a href={r.repo.url} target="_blank" rel="noreferrer" className="repo-name">
@@ -125,18 +125,18 @@ export function NavRail() {
 }
 
 export function Legend() {
-  const [open, setOpen] = useState(window.innerWidth > 900);
+  const [open, setOpen] = useState(false);
   const counts = useStore((s) => s.result?.summary.severityCounts) ?? {};
   const omitted = useStore((s) => s.omitted);
   const blocks = useStore((s) => s.blocks.length);
   return (
     <motion.div className={`legend glass ${open ? 'open' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-      <button className="legend-toggle" onClick={() => setOpen(!open)}>
-        Legend {open ? '−' : '+'}
+      <button className="legend-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+        How to read the tower <span aria-hidden>{open ? '−' : '+'}</span>
       </button>
       {open && (
         <div className="legend-body">
-          <div className="legend-title">Color = worst known advisory</div>
+          <div className="legend-title">Color: worst known advisory</div>
           {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN', 'NONE'] as const).map((s) => (
             <div key={s} className="legend-row">
               <span className="legend-swatch" style={{ background: SEV_META[s].color, boxShadow: SEV_META[s].glow ? `0 0 10px ${SEV_META[s].color}` : undefined }} />
@@ -144,15 +144,15 @@ export function Legend() {
               <b>{counts[s] ?? 0}</b>
             </div>
           ))}
-          <div className="legend-title">Width = bus-factor risk</div>
+          <div className="legend-title">Width: maintainer risk</div>
           <div className="legend-widths">
             {[0, 30, 60, 90].map((r) => (
               <span key={r} style={{ width: 46 * (1 - (r / 100) * 0.5), background: RISK_COLOR(r) }} title={`risk ${r}`} />
             ))}
-            <small>healthy → fragile</small>
+            <small>healthy to fragile</small>
           </div>
           <div className="legend-row">
-            <span className="legend-swatch hatch" /> Hatched = data unavailable
+            <span className="legend-swatch hatch" /> Striped: data unavailable
           </div>
           <div className="legend-foot">Bottom blocks = most depended-upon packages.{omitted > 0 && ` Showing ${blocks} blocks; ${omitted} lower-priority packages appear only in the dashboards & graph.`}</div>
         </div>

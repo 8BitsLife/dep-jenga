@@ -4,7 +4,8 @@ import { isVulnerable } from './severity';
 export const BLOCK_L = 3.6; // long side
 export const BLOCK_H = 0.55;
 export const BLOCK_W = 1.2; // nominal width (a layer is 3 widths = 1 length)
-export const MAX_BLOCKS = 108;
+// 24 layers: close to a real Jenga tower's proportions instead of a needle
+export const MAX_BLOCKS = 72;
 
 export interface BlockSpec {
   id: string;
