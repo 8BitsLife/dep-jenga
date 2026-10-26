@@ -4,6 +4,7 @@ import { FixPanel } from './components/FixPanel';
 import { GraphView } from './components/GraphView';
 import { Dock, IntegrityMeter, Legend, NavRail, Toasts, TopBar } from './components/Hud';
 import { Inspector } from './components/Inspector';
+import { Intro } from './components/Intro';
 import { Landing } from './components/Landing';
 import { ErrorCard, Loading } from './components/Loading';
 import { Overview } from './components/Overview';
@@ -25,6 +26,7 @@ export default function App() {
   const shakeAt = useStore((s) => s.shakeAt);
   const flashAt = useStore((s) => s.flashAt);
   const [shaking, setShaking] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
 
   // deep link: ?repo=owner/name
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function App() {
       <AnimatePresence>{flashAt > 0 && <motion.div key={flashAt} className="flash" initial={{ opacity: 0.85 }} animate={{ opacity: 0 }} transition={{ duration: 0.9 }} />}</AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {phase === 'landing' && <Landing key="landing" />}
+        {phase === 'landing' && introDone && <Landing key="landing" />}
         {phase === 'loading' && <Loading key="loading" />}
         {phase === 'error' && <ErrorCard key="error" />}
       </AnimatePresence>
@@ -90,6 +92,7 @@ export default function App() {
         </>
       )}
       <Toasts />
+      <Intro onReveal={() => setIntroDone(true)} />
     </div>
     </MotionConfig>
   );

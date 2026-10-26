@@ -364,6 +364,22 @@ code {
   background-color: #2a2838;
 }
 
+/* ============================================================ intro */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  transition: opacity 0.22s ease-out; /* a quick, clean cut to the site */
+}
+.intro canvas {
+  display: block;
+}
+.intro.leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ============================================================ landing */
 .landing {
   position: absolute;

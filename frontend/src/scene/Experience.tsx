@@ -4,6 +4,7 @@ import { Bloom, EffectComposer, Noise, Outline, Selection, Vignette } from '@rea
 import { CuboidCollider, Physics, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { markSceneReady } from '../lib/boot';
 import * as physics from '../lib/physics';
 import { SEV_META } from '../lib/severity';
 import { decorativeTower, towerHeight } from '../lib/tower';
@@ -73,6 +74,7 @@ function SceneContents() {
       {showData && <BlastLines />}
       {showData && <Overlays />}
       {!showData && <PointerField />}
+      <ReadySignal />
       <CameraRig height={h} landing={!showData} />
     </>
   );
@@ -133,6 +135,15 @@ function Floor() {
       </mesh>
     </group>
   );
+}
+
+/** Tells the intro screen the scene behind it has finished loading and rendered. */
+function ReadySignal() {
+  useEffect(() => {
+    let id = requestAnimationFrame(() => (id = requestAnimationFrame(markSceneReady)));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return null;
 }
 
 /** Feeds the landing tower's cursor force field: the pointer ray and how fast the cursor is moving. */
