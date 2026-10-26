@@ -1,0 +1,27 @@
+# dependencies & build output
+node_modules/
+dist/
+target/
+*.jar
+*.class
+
+# local tooling / editor state
+.claude/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# secrets & environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# logs & caches
+*.log
+npm-debug.log*
+.vite/
+*.tsbuildinfo
