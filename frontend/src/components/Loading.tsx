@@ -1,82 +1,123 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { sfx } from '../lib/sound';
 import { useStore } from '../store';
 
-const STAGES = [
-  { key: 'repo', label: 'Repo' },
-  { key: 'manifests', label: 'Manifests' },
-  { key: 'expand', label: 'Tree' },
-  { key: 'osv', label: 'OSV' },
-  { key: 'ghsa', label: 'GHSA' },
-  { key: 'risk', label: 'Bus factor' },
-  { key: 'done', label: 'Stack' },
+/** The backend's fine-grained stages, grouped into the six steps a person cares about. */
+const STEPS: { title: string; stages: string[] }[] = [
+  { title: 'Finding the repository', stages: ['repo', 'tree'] },
+  { title: 'Reading dependency files', stages: ['manifests', 'parse'] },
+  { title: 'Mapping the dependency tree', stages: ['resolve', 'expand', 'graph'] },
+  { title: 'Checking for known vulnerabilities', stages: ['osv', 'ghsa'] },
+  { title: 'Measuring maintainer health', stages: ['risk'] },
+  { title: 'Working out fixes', stages: ['remediate', 'done'] },
 ];
-const STAGE_PCT: Record<string, number> = { repo: 0, tree: 4, manifests: 8, parse: 12, resolve: 18, expand: 24, graph: 32, osv: 36, ghsa: 55, risk: 64, remediate: 92, done: 100 };
+
+const BLOCKS = 12; // four layers of three, like a tiny Jenga tower
+
+function stepFor(stage: string | undefined) {
+  const i = STEPS.findIndex((s) => stage && s.stages.includes(stage));
+  return i < 0 ? 0 : i;
+}
+
+/** "Measuring bus factor (48/193)" -> { text: "Measuring bus factor", count: "48 of 193" } */
+function splitCount(message: string) {
+  const m = message.match(/^(.*?)\s*\((\d+)\/(\d+)\)\s*$/);
+  return m ? { text: m[1], count: `${m[2]} of ${m[3]}` } : { text: message, count: null };
+}
 
 export function Loading() {
   const progress = useStore((s) => s.progress);
   const pct = useStore((s) => s.pct);
   const repo = useStore((s) => s.repoInput);
   const home = useStore((s) => s.home);
-  const blocks = Math.round((pct / 100) * 15);
-  const lastStage = progress[progress.length - 1]?.stage ?? 'repo';
+
+  const latest = progress[progress.length - 1];
+  const step = stepFor(latest?.stage);
+  const detail = latest ? splitCount(latest.message) : { text: 'Connecting to the analysis engine', count: null };
+  const placed = Math.round((pct / 100) * BLOCKS);
+
+  // a soft wooden knock as each block lands, rising in pitch as the tower grows
+  const lastPlaced = useRef(0);
+  useEffect(() => {
+    if (placed > lastPlaced.current) sfx.tock(0.85 + placed * 0.03, 0.4);
+    lastPlaced.current = placed;
+  }, [placed]);
 
   return (
-    <motion.section className="loading" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.04, filter: 'blur(10px)' }}>
-      <div className="loading-card glass">
-        <div className="loading-top">
-          <div className="mini-tower" aria-hidden>
-            {Array.from({ length: 15 }).map((_, i) => {
+    <motion.section
+      className="loading"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.3 } }}
+      aria-live="polite"
+    >
+      <motion.div
+        className="loader glass"
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+      >
+        <div className="loader-main">
+          <div className="loader-tower" aria-hidden>
+            {Array.from({ length: BLOCKS }).map((_, i) => {
               const layer = Math.floor(i / 3);
+              const lengthwise = layer % 2 === 1; // odd layers show one long face, even layers three block ends
+              if (lengthwise && i % 3 !== 0) return null;
               return (
                 <AnimatePresence key={i}>
-                  {i < blocks && (
+                  {i < placed && (
                     <motion.span
-                      className={`mini-block ${layer % 2 ? 'odd' : ''}`}
-                      style={{ bottom: layer * 14, left: layer % 2 ? 0 : (i % 3) * 22 }}
-                      initial={{ y: -60, opacity: 0 }}
+                      className={`loader-block ${lengthwise ? 'long' : ''} ${i === placed - 1 || (lengthwise && placed - 1 < i + 3 && placed - 1 >= i) ? 'newest' : ''}`}
+                      style={{ bottom: layer * 13, left: lengthwise ? 0 : (i % 3) * 18 }}
+                      initial={{ y: -36, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                      transition={{ type: 'spring', stiffness: 520, damping: 22 }}
                     />
                   )}
                 </AnimatePresence>
               );
             })}
           </div>
-          <div>
-            <div className="loading-repo">{repo}</div>
-            <div className="loading-pct">
-              {pct}
-              <span>%</span>
-            </div>
+
+          <div className="loader-text">
+            <div className="loader-repo">{repo}</div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.h2
+                key={step}
+                className="loader-title"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+              >
+                {STEPS[step].title}
+              </motion.h2>
+            </AnimatePresence>
+            <p className="loader-detail">
+              <span>{detail.text}</span>
+              {detail.count && <span className="loader-count">{detail.count}</span>}
+            </p>
           </div>
         </div>
-        <div className="stage-row">
-          {STAGES.map((s) => {
-            const reached = (STAGE_PCT[lastStage] ?? 0) >= (STAGE_PCT[s.key] ?? 0) && progress.length > 0;
-            return (
-              <span key={s.key} className={`stage-chip ${reached ? 'on' : ''}`}>
-                {s.label}
-              </span>
-            );
-          })}
+
+        <div className="loader-progress">
+          <div className="loader-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <motion.span animate={{ width: `${Math.max(pct, 2)}%` }} transition={{ type: 'spring', stiffness: 70, damping: 20 }} />
+          </div>
+          <div className="loader-meta">
+            <span>
+              Step {step + 1} of {STEPS.length}
+            </span>
+            <span>{pct}%</span>
+          </div>
         </div>
-        <div className="bar">
-          <motion.div className="bar-fill" animate={{ width: `${pct}%` }} transition={{ type: 'spring', stiffness: 60, damping: 18 }} />
-        </div>
-        <div className="log">
-          <AnimatePresence initial={false}>
-            {progress.slice(-6).map((p, i, arr) => (
-              <motion.div key={`${p.message}-${p.pct}`} className={`log-line ${i === arr.length - 1 ? 'current' : ''}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
-                <span className="log-caret">{i === arr.length - 1 ? '▸' : '✓'}</span> {p.message}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {progress.length === 0 && <div className="log-line current">▸ Connecting to the analysis engine…</div>}
-        </div>
-        <button className="link-btn" onClick={home}>
+
+        <button className="loader-cancel" onClick={home}>
           Cancel
         </button>
-      </div>
+      </motion.div>
     </motion.section>
   );
 }
@@ -87,20 +128,26 @@ export function ErrorCard() {
   const start = useStore((s) => s.start);
   const home = useStore((s) => s.home);
   return (
-    <motion.section className="loading" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-      <div className="loading-card glass error-card">
-        <div className="error-glyph">⚠</div>
+    <motion.section className="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div
+        className="loader glass error-card"
+        role="alert"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+      >
+        <span className="error-block" aria-hidden />
         <h2>The tower couldn't be built</h2>
         <p>{error}</p>
         <div className="row gap">
           <button className="key key-primary" onClick={() => start(repo, true)}>
-            Retry
+            Try again
           </button>
           <button className="key key-ghost" onClick={home}>
-            Try another repo
+            Use another repository
           </button>
         </div>
-      </div>
+      </motion.div>
     </motion.section>
   );
 }
