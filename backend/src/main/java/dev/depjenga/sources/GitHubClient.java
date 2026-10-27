@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class GitHubClient {
     public static final String API = "GitHub REST API";
     public static final String RAW = "GitHub raw content";
+    public static final String MIRROR = "jsDelivr file listing";
     public static final String ADVISORIES = "GitHub Advisory Database";
 
     public record RepoRef(String owner, String repo, String ref) {}
@@ -111,6 +112,37 @@ public class GitHubClient {
             log.fail(API, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Repository file listing from jsDelivr's GitHub mirror. It costs no GitHub API quota, so it stands in for
+     * the tree API when that is rate limited. Without a known branch it tries main, then master.
+     */
+    public Tree mirrorTree(RepoRef ref, String branch, SourceLog log) {
+        List<String> candidates = "HEAD".equals(branch) ? List.of("main", "master") : List.of(branch);
+        for (String b : candidates) {
+            String url = "https://data.jsdelivr.com/v1/packages/gh/" + ref.owner() + "/" + ref.repo() + "@" + Http.enc(b) + "?structure=flat";
+            try {
+                Http.Res r = http.get(url, Map.of());
+                if (r.status() == 404) continue;
+                if (!r.ok()) {
+                    log.fail(MIRROR, "HTTP " + r.status());
+                    return null;
+                }
+                List<TreeEntry> entries = new ArrayList<>();
+                for (JsonNode f : http.mapper().readTree(r.body()).path("files")) {
+                    String name = f.path("name").asText();
+                    entries.add(new TreeEntry(name.startsWith("/") ? name.substring(1) : name, f.path("size").asLong()));
+                }
+                log.ok(MIRROR);
+                return new Tree(entries, false);
+            } catch (IOException e) {
+                log.fail(MIRROR, e.getMessage());
+                return null;
+            }
+        }
+        log.fail(MIRROR, "Branch '" + branch + "' not found");
+        return null;
     }
 
     /** Raw file content via raw.githubusercontent.com (not subject to the REST API rate limit). Null if absent. */

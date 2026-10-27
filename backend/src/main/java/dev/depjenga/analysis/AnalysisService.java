@@ -79,6 +79,7 @@ public class AnalysisService {
         SourceLog sl = new SourceLog();
         sl.register(GitHubClient.API, "https://docs.github.com/en/rest");
         sl.register(GitHubClient.RAW, "https://raw.githubusercontent.com");
+        sl.register(GitHubClient.MIRROR, "https://www.jsdelivr.com/docs/data.jsdelivr.com");
         sl.register(DepsDevClient.NAME, "https://deps.dev");
         sl.register(OsvClient.NAME, "https://osv.dev");
         sl.register(GitHubClient.ADVISORIES, "https://github.com/advisories");
@@ -106,13 +107,18 @@ public class AnalysisService {
         // ------------------------------------------------------------------ discover manifests
         progress.emit("tree", "Scanning the repository tree for dependency manifests", 6);
         Tree tree = gh.tree(ref, branch, sl);
+        if (tree == null) {
+            tree = gh.mirrorTree(ref, branch, sl);
+            if (tree != null) result.notes.add("The GitHub tree API was unavailable (rate limit?), so the file listing came from jsDelivr's GitHub mirror, which can lag a recent push by a few hours.");
+        }
         Map<String, String> files = new ConcurrentHashMap<>();
         List<String> paths;
+        boolean rootOnly = tree == null;
         if (tree != null) {
             paths = tree.entries().stream().filter(e -> e.size() < 25_000_000).map(GitHubClient.TreeEntry::path).toList();
             if (tree.truncated()) result.notes.add("The repository tree is very large and GitHub truncated the listing; some nested manifests may be missing.");
         } else {
-            result.notes.add("The GitHub tree API was unavailable, so only root-level manifests were probed directly.");
+            result.notes.add("Neither the GitHub tree API nor the jsDelivr mirror was available, so only root-level manifests were probed directly.");
             List<String> found = java.util.Collections.synchronizedList(new ArrayList<>());
             parallel(ManifestSelector.ROOT_PROBES, name -> {
                 String body = gh.raw(ref, branch, name, sl);
@@ -124,6 +130,11 @@ public class AnalysisService {
             paths = found;
         }
         List<Unit> units = ManifestSelector.select(paths, maxManifests);
+        if (units.isEmpty() && rootOnly) {
+            throw new AnalysisException("GitHub's API rate limit was reached and the file-listing mirror was unavailable, so only the root of "
+                    + repo.fullName + " could be checked, and it has no dependency manifests. Nested manifests (for example frontend/package.json) "
+                    + "need the file listing: add a GitHub token, or try again once the hourly limit resets.");
+        }
         if (units.isEmpty()) {
             throw new AnalysisException("No supported dependency manifests were found in " + repo.fullName
                     + ". Supported: package-lock.json, yarn.lock, package.json, requirements*.txt, pyproject.toml, poetry.lock, Pipfile.lock, go.mod, Cargo.lock, Cargo.toml, Gemfile.lock, composer.lock, pom.xml, build.gradle.");
