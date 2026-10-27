@@ -61,8 +61,9 @@ progress over Server-Sent Events, so it runs on Render as a Docker web service r
 
 **2. Frontend on Vercel**
 
-1. Import the repository in Vercel and leave the root directory as the repository root:
-   [`vercel.json`](vercel.json) installs and builds `frontend/` and serves `frontend/dist`.
+1. Import the repository in Vercel and set **Root Directory** to `frontend`. The Vite preset's defaults
+   (`npm install`, `npm run build`, `dist`) are right as they are; [`frontend/vercel.json`](frontend/vercel.json) only
+   adds long-lived caching for the hashed assets.
 2. Add the environment variable `VITE_API_URL` set to the Render URL from step 1 (no trailing slash), then deploy.
 
 Render's free plan sleeps after about 15 minutes idle and takes up to a minute to wake. The page pings `/api/health`
