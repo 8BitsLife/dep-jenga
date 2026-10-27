@@ -1025,7 +1025,10 @@ code {
 .panel-body {
   padding: 16px 20px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: grid;
+  /* minmax(0, ...) lets long content (commands, ids) shrink instead of widening the panel */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-content: start;
   flex: 1;
@@ -1700,8 +1703,8 @@ code.small {
 .cmd code {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
   color: #d9ffe9;
 }
 .risk {
@@ -1805,9 +1808,12 @@ code.small {
 /* fix panel */
 .fix-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 .fix-card {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--sev) 30%, transparent);
@@ -1818,9 +1824,16 @@ code.small {
 .fix-card-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fix-card-top .sev-chip {
+  flex: none;
 }
 .fix-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
   background: none;
   border: 0;
   padding: 0;
