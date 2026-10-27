@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { RISK_COLOR, SEV_META } from '../lib/severity';
+import { GRADE_COLOR, RISK_COLOR, SEV_META } from '../lib/severity';
 import { useStore, type Panel, type Tool } from '../store';
 import { Key, Ring } from './ui';
 
@@ -9,7 +9,7 @@ export function TopBar() {
   const home = useStore((s) => s.home);
   const start = useStore((s) => s.start);
   const s = r.summary;
-  const gradeColor = s.overallScore >= 70 ? '#ff2e63' : s.overallScore >= 50 ? '#ff8a1f' : s.overallScore >= 30 ? '#ffd23f' : '#4dffb5';
+  const gradeColor = GRADE_COLOR[s.grade] ?? '#ffd23f';
   return (
     <motion.header className="topbar" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }}>
       <button className="brand" onClick={home} title="New scan">
@@ -59,12 +59,15 @@ export function Dock() {
   const toggleMute = useStore((s) => s.toggleMute);
   const awake = useStore((s) => s.awake);
   const hint = TOOLS.find((t) => t.id === tool)!.hint;
+  const graphOpen = useStore((s) => s.panel === 'graph');
   return (
     <motion.div className="dock-wrap" initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20, delay: 0.15 }}>
       <AnimatePresence mode="wait">
+        {!graphOpen && (
         <motion.div key={tool + (blastId ?? '')} className="dock-hint" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
           {tool === 'blast' && blastId ? 'Press D to detonate the blast radius — or pick another block' : hint}
         </motion.div>
+        )}
       </AnimatePresence>
       <div className="dock glass">
         {TOOLS.map((t, i) => (

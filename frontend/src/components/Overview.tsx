@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { threatOrder } from '../lib/graph';
-import { RISK_COLOR, SEV_META, SEV_ORDER } from '../lib/severity';
+import { GRADE_COLOR, RISK_COLOR, SEV_META, SEV_ORDER } from '../lib/severity';
 import { useStore } from '../store';
 import { CountUp, Ring, RiskBar, SevChip, ecoIcon } from './ui';
 
@@ -10,7 +10,7 @@ export function Overview() {
   const select = useStore((s) => s.select);
   const s = r.summary;
   const [why, setWhy] = useState(false);
-  const gradeColor = s.overallScore >= 70 ? '#ff2e63' : s.overallScore >= 50 ? '#ff8a1f' : s.overallScore >= 30 ? '#ffd23f' : '#4dffb5';
+  const gradeColor = GRADE_COLOR[s.grade] ?? '#ffd23f';
 
   const threats = useMemo(() => r.packages.filter((p) => p.vulns.length).sort(threatOrder).slice(0, 8), [r]);
   const hotspots = useMemo(() => r.packages.filter((p) => p.risk.available).sort((a, b) => (b.risk.score ?? 0) - (a.risk.score ?? 0) || b.transitiveDependents - a.transitiveDependents).slice(0, 6), [r]);
@@ -27,7 +27,7 @@ export function Overview() {
   return (
     <div className="panel-body">
       <div className="hero-score">
-        <Ring value={s.overallScore} size={132} stroke={11} color={gradeColor} label={<span style={{ color: gradeColor }}>{s.grade}</span>} sub={`${s.overallScore}/100 collapse risk`} />
+        <Ring value={s.overallScore} size={132} stroke={11} color={gradeColor} label={<span style={{ color: gradeColor }}>{s.grade}</span>} sub={`${s.overallScore}/100`} />
         <div className="hero-score-text">
           <h3>{r.repo.fullName}</h3>
           {r.repo.description ? <p>{r.repo.description}</p> : <p className="unavailable">No description available</p>}

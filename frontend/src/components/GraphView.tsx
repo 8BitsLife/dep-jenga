@@ -1,8 +1,8 @@
 import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, type SimulationLinkDatum, type SimulationNodeDatum } from 'd3-force';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RISK_COLOR, SEV_META } from '../lib/severity';
+import { RISK_COLOR, SEV_META, SEV_ORDER } from '../lib/severity';
 import { sfx } from '../lib/sound';
-import type { PackageNode } from '../lib/types';
+import type { PackageNode, Severity } from '../lib/types';
 import { useStore } from '../store';
 
 interface N extends SimulationNodeDatum {
@@ -11,8 +11,60 @@ interface N extends SimulationNodeDatum {
   r: number;
 }
 type L = SimulationLinkDatum<N>;
+type Palette = 'colour' | 'plain';
+type RGB = [number, number, number];
 
-/** Force-directed dependency graph on a canvas. Node size = blast radius, ring = bus-factor risk. */
+const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const shade = ([r, g, b]: RGB, t: number) =>
+  t >= 0
+    ? `rgb(${Math.round(r + (255 - r) * t)},${Math.round(g + (255 - g) * t)},${Math.round(b + (255 - b) * t)})`
+    : `rgb(${Math.round(r * (1 + t))},${Math.round(g * (1 + t))},${Math.round(b * (1 + t))})`;
+
+const IVORY = hex('#e6dacb');
+const CLEAN_HEX = '#7fd4a8'; // colour mode only: no known advisories
+const CLEAN = hex(CLEAN_HEX);
+const UNSCANNED = hex('#55505c');
+const ROOT = hex('#ff4436');
+const SEV_RGB = Object.fromEntries(SEV_ORDER.map((k) => [k, hex(SEV_META[k].color)])) as Record<Severity, RGB>;
+const PALETTE_KEY = 'depjenga.graphPalette';
+
+function bodyColour(p: PackageNode | undefined, palette: Palette): RGB {
+  if (!p) return ROOT;
+  if (p.severity === 'NOT_SCANNED') return UNSCANNED;
+  if (palette === 'plain') return IVORY;
+  return p.vulns.length ? SEV_RGB[p.severity] : CLEAN;
+}
+
+/** A lit sphere: soft contact shadow, key light from the top left, darker rim, small specular highlight. */
+function sphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, c: RGB) {
+  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.18, y + r * 0.32, r * 0.95, r * 0.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.05, x, y, r);
+  g.addColorStop(0, shade(c, 0.6));
+  g.addColorStop(0.35, shade(c, 0.08));
+  g.addColorStop(0.8, shade(c, -0.32));
+  g.addColorStop(1, shade(c, -0.55));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.36, y - r * 0.42, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function readPalette(): Palette {
+  try {
+    return localStorage.getItem(PALETTE_KEY) === 'plain' ? 'plain' : 'colour';
+  } catch {
+    return 'colour';
+  }
+}
+
+/** Force-directed dependency graph on a canvas. Sphere size = blast radius, colour = severity, ring = bus-factor risk. */
 export function GraphView() {
   const r = useStore((s) => s.result)!;
   const selectedId = useStore((s) => s.selectedId);
@@ -23,9 +75,10 @@ export function GraphView() {
   const wrap = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<N | null>(null);
   const [onlyVuln, setOnlyVuln] = useState(false);
+  const [palette, setPalette] = useState<Palette>(readPalette);
   const view = useRef({ x: 0, y: 0, k: 1 });
-  const state = useRef({ selectedId, blastId, blastSet, hover: null as N | null });
-  state.current = { selectedId, blastId, blastSet, hover };
+  const state = useRef({ selectedId, blastId, blastSet, hover: null as N | null, palette });
+  state.current = { selectedId, blastId, blastSet, hover, palette };
 
   const { nodes, links } = useMemo(() => {
     let pk = r.packages;
@@ -46,7 +99,11 @@ export function GraphView() {
       pk = r.packages.filter((p) => keep.has(p.id));
     }
     const ids = new Set(pk.map((p) => p.id));
-    const nodes: N[] = [{ id: r.rootId, r: 16, fx: 0, fy: 0 }, ...pk.map((p) => ({ id: p.id, p, r: 3.5 + Math.sqrt(p.transitiveDependents) * 1.6 + (p.vulns.length ? 2 : 0) }))];
+    // sqrt keeps hubs readable without a few giants swallowing the canvas
+    const nodes: N[] = [
+      { id: r.rootId, r: 18, fx: 0, fy: 0 },
+      ...pk.map((p) => ({ id: p.id, p, r: Math.min(26, 4.5 + Math.sqrt(p.transitiveDependents) * 2.2 + (p.vulns.length ? 1.5 : 0)) })),
+    ];
     const links: L[] = r.edges.filter((e) => (e.from === r.rootId || ids.has(e.from)) && ids.has(e.to)).map((e) => ({ source: e.from, target: e.to }));
     return { nodes, links };
   }, [r, onlyVuln]);
@@ -69,15 +126,42 @@ export function GraphView() {
     ro.observe(wrap.current!);
 
     const sim = forceSimulation<N>(nodes)
-      .force('link', forceLink<N, L>(links).id((d) => d.id).distance((l) => ((l.source as N).id === r.rootId ? 70 : 34)).strength(0.5))
-      .force('charge', forceManyBody().strength(-60))
-      .force('collide', forceCollide<N>().radius((d) => d.r + 2))
+      .force(
+        'link',
+        forceLink<N, L>(links)
+          .id((d) => d.id)
+          .distance((l) => ((l.source as N).id === r.rootId ? 90 : 22 + ((l.source as N).r + (l.target as N).r) * 0.9))
+          .strength(0.5),
+      )
+      .force('charge', forceManyBody<N>().strength((d) => -50 - d.r * 4))
+      .force('collide', forceCollide<N>().radius((d) => d.r + 3))
       .force('center', forceCenter(0, 0))
       .alphaDecay(0.025);
 
+    // small spheres first so hubs sit on top of their neighbours
+    const order = [...nodes].sort((a, b) => a.r - b.r);
+    // keep easing the camera to frame the whole graph while it settles, until the user pans or zooms
+    let touched = false;
+    const fit = () => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const n of nodes) {
+        x0 = Math.min(x0, n.x! - n.r);
+        y0 = Math.min(y0, n.y! - n.r);
+        x1 = Math.max(x1, n.x! + n.r);
+        y1 = Math.max(y1, n.y! + n.r);
+      }
+      const k = Math.min(1.6, Math.max(0.25, Math.min((w - 48) / (x1 - x0), (h - 48) / (y1 - y0))));
+      const v = view.current;
+      const e = 0.12;
+      v.k += (k - v.k) * e;
+      v.x += ((-(x0 + x1) / 2) * k - v.x) * e;
+      v.y += ((-(y0 + y1) / 2) * k - v.y) * e;
+    };
+
     let raf = 0;
     const draw = () => {
-      const { selectedId, blastId, blastSet, hover } = state.current;
+      if (!touched) fit();
+      const { selectedId, blastId, blastSet, hover, palette } = state.current;
       const v = view.current;
       ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
       ctx.clearRect(0, 0, w, h);
@@ -89,48 +173,52 @@ export function GraphView() {
       for (const l of links) {
         const s = l.source as N, t = l.target as N;
         const hot = blastId && (blastSet.has(s.id) || s.id === blastId) && (t.id === blastId || blastSet.has(t.id));
-        ctx.strokeStyle = hot ? 'rgba(255,138,31,0.8)' : focus && (s.id === focus || t.id === focus) ? 'rgba(255,255,255,0.55)' : 'rgba(234,223,211,0.12)';
+        ctx.strokeStyle = hot ? 'rgba(255,138,31,0.8)' : focus && (s.id === focus || t.id === focus) ? 'rgba(255,255,255,0.55)' : 'rgba(234,223,211,0.09)';
         ctx.beginPath();
         ctx.moveTo(s.x!, s.y!);
         ctx.lineTo(t.x!, t.y!);
         ctx.stroke();
       }
-      for (const n of nodes) {
-        const alpha = lit(n.id) ? 1 : 0.15;
+      for (const n of order) {
+        const alpha = lit(n.id) ? 1 : 0.14;
         ctx.globalAlpha = alpha;
-        if (!n.p) {
-          ctx.fillStyle = '#ff4436';
-          ctx.shadowColor = '#ff4436';
-          ctx.shadowBlur = 24;
+        const c = bodyColour(n.p, palette);
+        const vuln = !!n.p?.vulns.length;
+        // vulnerable spheres (and the project itself) give off a little light in colour mode
+        if ((vuln && palette === 'colour') || !n.p) {
+          const halo = ctx.createRadialGradient(n.x!, n.y!, n.r * 0.6, n.x!, n.y!, n.r * 2.6);
+          halo.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},0.35)`);
+          halo.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+          ctx.fillStyle = halo;
           ctx.beginPath();
-          ctx.arc(n.x!, n.y!, n.r, 0, Math.PI * 2);
+          ctx.arc(n.x!, n.y!, n.r * 2.6, 0, Math.PI * 2);
           ctx.fill();
-          ctx.shadowBlur = 0;
-          continue;
         }
-        const m = SEV_META[n.p.severity];
-        const vuln = n.p.vulns.length > 0;
-        ctx.fillStyle = vuln ? m.color : n.p.severity === 'NOT_SCANNED' ? '#3a3a4a' : '#d9cdbf';
-        if (vuln) {
-          ctx.shadowColor = m.color;
-          ctx.shadowBlur = 16;
-        }
-        ctx.beginPath();
-        ctx.arc(n.x!, n.y!, n.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        // risk ring
-        ctx.lineWidth = 1.6 / v.k;
-        if (n.p.risk.available) {
-          ctx.strokeStyle = RISK_COLOR(n.p.risk.score);
+        sphere(ctx, n.x!, n.y!, n.r, c);
+        if (!n.p) continue;
+        // plain mode keeps severity readable as a thin outline
+        if (vuln && palette === 'plain') {
+          ctx.strokeStyle = SEV_META[n.p.severity].color;
+          ctx.lineWidth = 2 / v.k;
           ctx.beginPath();
-          ctx.arc(n.x!, n.y!, n.r + 2, -Math.PI / 2, -Math.PI / 2 + ((n.p.risk.score ?? 0) / 100) * Math.PI * 2);
+          ctx.arc(n.x!, n.y!, n.r + 1, 0, Math.PI * 2);
           ctx.stroke();
-        } else {
-          ctx.setLineDash([2 / v.k, 2 / v.k]);
-          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        }
+        // maintainer risk ring
+        ctx.lineWidth = 1.3 / v.k;
+        ctx.lineCap = 'round';
+        if (n.p.risk.available) {
+          ctx.globalAlpha = alpha * (palette === 'plain' ? 0.35 : 0.8);
+          ctx.strokeStyle = palette === 'plain' ? '#eadfd3' : RISK_COLOR(n.p.risk.score);
           ctx.beginPath();
-          ctx.arc(n.x!, n.y!, n.r + 2, 0, Math.PI * 2);
+          ctx.arc(n.x!, n.y!, n.r + 3.5, -Math.PI / 2, -Math.PI / 2 + ((n.p.risk.score ?? 0) / 100) * Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = alpha;
+        } else {
+          ctx.setLineDash([2 / v.k, 3 / v.k]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.beginPath();
+          ctx.arc(n.x!, n.y!, n.r + 3.5, 0, Math.PI * 2);
           ctx.stroke();
           ctx.setLineDash([]);
         }
@@ -138,13 +226,13 @@ export function GraphView() {
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2 / v.k;
           ctx.beginPath();
-          ctx.arc(n.x!, n.y!, n.r + 5, 0, Math.PI * 2);
+          ctx.arc(n.x!, n.y!, n.r + 7, 0, Math.PI * 2);
           ctx.stroke();
         }
-        if ((vuln || n.r > 9 || n.id === selectedId || n.id === hover?.id) && v.k > 0.6) {
-          ctx.fillStyle = 'rgba(243,236,228,0.9)';
-          ctx.font = `${11 / v.k}px "Geist", sans-serif`;
-          ctx.fillText(n.p.name, n.x! + n.r + 4, n.y! + 4 / v.k);
+        if ((vuln || n.r > 12 || n.id === selectedId || n.id === hover?.id) && v.k > 0.6) {
+          ctx.fillStyle = 'rgba(243,236,228,0.92)';
+          ctx.font = `500 ${11 / v.k}px "Geist", sans-serif`;
+          ctx.fillText(n.p.name, n.x! + n.r + 6, n.y! + 4 / v.k);
         }
       }
       ctx.globalAlpha = 1;
@@ -169,6 +257,7 @@ export function GraphView() {
     };
     let drag: { x: number; y: number; vx: number; vy: number; moved: boolean } | null = null;
     const down = (e: PointerEvent) => {
+      touched = true;
       drag = { x: e.clientX, y: e.clientY, vx: view.current.x, vy: view.current.y, moved: false };
       c.setPointerCapture(e.pointerId);
     };
@@ -196,6 +285,7 @@ export function GraphView() {
     };
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
+      touched = true;
       const k = Math.min(4, Math.max(0.25, view.current.k * (e.deltaY < 0 ? 1.12 : 0.89)));
       view.current.k = k;
     };
@@ -214,18 +304,51 @@ export function GraphView() {
     };
   }, [nodes, links, r.rootId, select]);
 
+  const choosePalette = (m: Palette) => {
+    setPalette(m);
+    sfx.pop();
+    try {
+      localStorage.setItem(PALETTE_KEY, m);
+    } catch {
+      /* a per-viewer nicety only */
+    }
+  };
+
   return (
     <div className="panel-body graph-panel">
-      <div className="row between">
-        <p className="fine">Node size = how many packages depend on it · outer ring = bus-factor risk (dashed = no data). Drag to pan, scroll to zoom, click to inspect.</p>
-        <label className="toggle">
-          <input type="checkbox" checked={onlyVuln} onChange={(e) => (setOnlyVuln(e.target.checked), sfx.pop())} />
-          <span />
-          Vulnerable paths only
-        </label>
+      <div className="row between graph-head">
+        <p className="fine">Size = how many packages depend on it · ring = maintainer risk (dashed = no data). Drag to pan, scroll to zoom, click to inspect.</p>
+        <div className="graph-controls">
+          <div className="seg" role="radiogroup" aria-label="Sphere colours">
+            {(['colour', 'plain'] as const).map((m) => (
+              <button key={m} role="radio" aria-checked={palette === m} className={palette === m ? 'on' : ''} onClick={() => choosePalette(m)}>
+                {m === 'colour' ? 'Colourful' : 'Plain'}
+              </button>
+            ))}
+          </div>
+          <label className="toggle">
+            <input type="checkbox" checked={onlyVuln} onChange={(e) => (setOnlyVuln(e.target.checked), sfx.pop())} />
+            <span />
+            Vulnerable paths only
+          </label>
+        </div>
       </div>
       <div className="graph-wrap" ref={wrap}>
         <canvas ref={canvas} />
+        {palette === 'colour' && (
+          <div className="graph-key" aria-hidden>
+            {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const).map((k) => (
+              <span key={k}>
+                <i style={{ background: SEV_META[k].color }} />
+                {SEV_META[k].label}
+              </span>
+            ))}
+            <span>
+              <i style={{ background: CLEAN_HEX }} />
+              No known advisories
+            </span>
+          </div>
+        )}
         {hover?.p && (
           <div className="graph-tip">
             <b>{hover.p.name}</b> {hover.p.version}

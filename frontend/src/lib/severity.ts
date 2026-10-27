@@ -26,3 +26,6 @@ export const VERSION_SOURCE_LABEL: Record<PackageNode['versionSource'], string> 
   'deps.dev-resolved': "Transitive version predicted by deps.dev's resolver (no lockfile)",
   unresolved: 'Version could not be resolved',
 };
+
+/** One colour per letter grade, so the badge and the ring always agree with the letter. */
+export const GRADE_COLOR: Record<string, string> = { A: '#4dffb5', B: '#b8e05a', C: '#ffd23f', D: '#ff8a3d', F: '#ff4436' };

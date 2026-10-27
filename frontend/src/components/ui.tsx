@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useEffect, useState, type ReactNode } from 'react';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { RISK_COLOR, SEV_META } from '../lib/severity';
 import { sfx } from '../lib/sound';
 import type { Severity } from '../lib/types';
@@ -71,35 +71,56 @@ export function Unavailable({ children }: { children: ReactNode }) {
   return <span className="unavailable" title="Data unavailable — not estimated">{children}</span>;
 }
 
-/** Animated radial gauge. value=null renders a hatched "no data" ring. */
+/**
+ * Animated radial gauge. value=null renders a hatched "no data" ring.
+ * The arc length is computed with its round caps included, so it starts and ends exactly where the value says,
+ * and the glow is a blurred copy inside the SVG (a CSS drop-shadow gets clipped square by the SVG box).
+ */
 export function Ring({ value, size = 120, stroke = 10, color, label, sub }: { value: number | null; size?: number; stroke?: number; color: string; label: ReactNode; sub?: ReactNode }) {
+  const id = useId().replace(/:/g, '');
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
+  const mid = size / 2;
+  const target = value == null ? 0 : Math.max(0, Math.min(100, value)) / 100;
+  const p = useMotionValue(0);
+  useEffect(() => {
+    const a = animate(p, target, { duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 });
+    return () => a.stop();
+  }, [p, target]);
+  // a round cap adds stroke/2 at each end: draw a dash that much shorter and start it half a stroke late
+  const dash = useTransform(p, (v) => {
+    const len = Math.max(0, c * v - stroke);
+    return `${len} ${c}`;
+  });
+  const opacity = useTransform(p, (v) => (v * c > 0.5 ? 1 : 0));
+  const arc = {
+    cx: mid,
+    cy: mid,
+    r,
+    fill: 'none',
+    stroke: color,
+    strokeLinecap: 'round' as const,
+    transform: `rotate(-90 ${mid} ${mid})`,
+    strokeDashoffset: -stroke / 2,
+    style: { strokeDasharray: dash, opacity },
+  };
   return (
     <div className="ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible">
         <defs>
-          <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <pattern id={`hatch-${id}`} width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <rect width="3" height="6" fill="rgba(255,255,255,0.12)" />
           </pattern>
+          <filter id={`glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation={Math.max(2, stroke * 0.6)} />
+          </filter>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} stroke={value == null ? 'url(#hatch)' : 'rgba(255,255,255,0.07)'} strokeWidth={stroke} fill="none" />
+        <circle cx={mid} cy={mid} r={r} stroke={value == null ? `url(#hatch-${id})` : 'rgba(255,255,255,0.06)'} strokeWidth={stroke} fill="none" />
         {value != null && (
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            stroke={color}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            fill="none"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-            strokeDasharray={c}
-            initial={{ strokeDashoffset: c }}
-            animate={{ strokeDashoffset: c * (1 - Math.max(0, Math.min(100, value)) / 100) }}
-            transition={{ type: 'spring', stiffness: 40, damping: 14, delay: 0.2 }}
-            style={{ filter: `drop-shadow(0 0 8px ${color})` }}
-          />
+          <>
+            <motion.circle {...arc} strokeWidth={stroke} filter={`url(#glow-${id})`} strokeOpacity={0.45} />
+            <motion.circle {...arc} strokeWidth={stroke} />
+          </>
         )}
       </svg>
       <div className="ring-label">
