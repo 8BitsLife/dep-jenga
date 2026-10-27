@@ -9,6 +9,7 @@ import { Landing } from './components/Landing';
 import { ErrorCard, Loading } from './components/Loading';
 import { Overview } from './components/Overview';
 import { SourcesPanel } from './components/SourcesPanel';
+import { wakeBackend } from './lib/api';
 import { Experience } from './scene/Experience';
 import { useStore, type Panel } from './store';
 
@@ -30,6 +31,7 @@ export default function App() {
 
   // deep link: ?repo=owner/name
   useEffect(() => {
+    wakeBackend();
     const repo = new URLSearchParams(window.location.search).get('repo');
     if (repo) useStore.getState().start(repo);
   }, []);

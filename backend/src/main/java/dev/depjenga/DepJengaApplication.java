@@ -19,7 +19,8 @@ public class DepJengaApplication {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/**").allowedOrigins(origins).allowedMethods("GET", "POST");
+                // patterns, so a single entry like https://*.vercel.app also covers preview deployments
+                registry.addMapping("/api/**").allowedOriginPatterns(origins).allowedMethods("GET", "POST");
             }
         };
     }

@@ -41,6 +41,42 @@ raises the limit to 5,000/hour and enables full enrichment. Public read-only acc
 GITHUB_TOKEN=ghp_xxx mvn spring-boot:run
 ```
 
+If the GitHub API limit is used up, the file listing falls back to jsDelivr's GitHub mirror, so nested manifests are still
+found; only stars, description and license go missing until the limit resets.
+
+---
+
+## Deploy: Vercel (frontend) + Render (backend)
+
+The frontend is a static Vite build, which suits Vercel. The backend is a long-running Spring Boot service that streams
+progress over Server-Sent Events, so it runs on Render as a Docker web service rather than as serverless functions.
+
+**1. Backend on Render**
+
+1. In Render, choose **New > Blueprint** and select this repository. It reads [`render.yaml`](render.yaml), which builds
+   [`backend/Dockerfile`](backend/Dockerfile) and checks `/api/health`.
+2. Set `GITHUB_TOKEN` when prompted (optional but recommended). `ALLOWED_ORIGINS` defaults to
+   `https://*.vercel.app,http://localhost:5173`; narrow it to your production domain if you like.
+3. Note the service URL, for example `https://depjenga-api.onrender.com`.
+
+**2. Frontend on Vercel**
+
+1. Import the repository in Vercel and leave the root directory as the repository root:
+   [`vercel.json`](vercel.json) installs and builds `frontend/` and serves `frontend/dist`.
+2. Add the environment variable `VITE_API_URL` set to the Render URL from step 1 (no trailing slash), then deploy.
+
+Render's free plan sleeps after about 15 minutes idle and takes up to a minute to wake. The page pings `/api/health`
+as it opens to start that early; if a scan still loses its connection while the backend wakes, try again.
+
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `VITE_API_URL` | Vercel | Backend base URL. Unset in development, where Vite proxies `/api`. |
+| `GITHUB_TOKEN` | Render | Raises the GitHub API limit to 5,000 requests/hour. |
+| `ALLOWED_ORIGINS` | Render | Comma-separated CORS origins; wildcards such as `https://*.vercel.app` work. |
+| `PORT` | Render | Set by Render automatically; defaults to 8080. |
+
+See [`frontend/.env.example`](frontend/.env.example) and [`backend/.env.example`](backend/.env.example).
+
 ---
 
 ## How to play
@@ -81,10 +117,16 @@ DepJenga never makes up a finding. When a source has nothing, the UI says so.
 
 ### Collapse-risk score
 
-`70%` vulnerability load (critical 30 · high 15 · medium 6 · low 2 · unscored 4 points per vulnerable package; dev-only
-counts half; saturating curve) + `30%` average bus-factor risk (direct deps weighted 2×). If there's no maintainer data,
-the score is 100% vulnerability load and the UI says why. "How is this calculated?" in the dashboard shows the
-breakdown for each scan.
+`75%` vulnerability load + `25%` maintainer risk, graded A (under 15) · B (under 30) · C (under 47) · D (under 68) · F.
+
+- **Vulnerability load:** critical 30 · high 15 · medium 6 · low 2 · unscored 5 points per vulnerable package, x0.35 if
+  dev-only, x0.7 if a fixed version exists, x0.85 if transitive. Each further vulnerable package counts 7% less, and
+  larger trees get a little more headroom before the curve saturates.
+- **Maintainer risk:** the average bus-factor risk (direct dependencies weighted 2x), counted only above a baseline of 20,
+  since most healthy ecosystems sit around 20-40. With no maintainer data the score is 100% vulnerability load.
+- A runtime dependency with a critical advisory and no published fix holds the grade at D or worse.
+
+"How is this calculated?" in the dashboard shows the breakdown for each scan.
 
 ---
 
