@@ -404,19 +404,67 @@ code {
 .land-brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 13px;
   color: var(--text);
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.015em;
 }
 .land-brand:hover {
   text-decoration: none;
 }
 .land-brand img {
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.45s var(--spring);
+}
+.land-brand:hover img {
+  transform: rotate(-6deg);
+}
+/* wordmark: mono "dep" + heavy "Jenga", standing on a three-block layer */
+.wordmark {
+  display: inline-grid;
+  gap: 5px;
+}
+.wm-word {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  transform-origin: 0 100%;
+  transition: transform 0.5s var(--spring);
+}
+.wm-dep {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--faint);
+  letter-spacing: -0.02em;
+}
+.wm-jenga {
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+}
+.wm-layer {
+  display: flex;
+  gap: 3px;
+}
+.wm-layer i {
+  flex: 1;
+  height: 6px;
+  border-radius: 2px;
+  background: #e6dacb;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+}
+.wm-layer .wm-pulled {
+  background: var(--pink);
+  transform: translateX(38%);
+  transition: transform 0.55s var(--spring);
+}
+.land-brand:hover .wm-pulled {
+  transform: translateX(78%);
+}
+.land-brand:hover .wm-word {
+  transform: rotate(-2.5deg);
 }
 .land-link {
   font-size: 14px;
@@ -815,17 +863,18 @@ code {
 }
 .brand {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex: none;
   background: none;
   border: 0;
-  padding: 6px;
+  padding: 0;
+  border-radius: 14px;
 }
+/* sized to the repo pill beside it, so the header reads as one row of tiles */
 .brand-logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  box-shadow: 0 0 18px rgba(255, 74, 66, 0.45);
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 68, 54, 0.22);
   transition: transform 0.3s var(--spring);
 }
 .brand:hover .brand-logo {
@@ -833,12 +882,6 @@ code {
 }
 .brand:active .brand-logo {
   transform: scale(0.9);
-}
-.brand-name {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.015em;
 }
 .repo-pill {
   display: flex;
@@ -2076,6 +2119,8 @@ code.small {
     overflow-y: auto;
   }
   .land-main {
+    /* reset the desktop grid placement: browsers that honour justify-self in block layout would shrink-wrap it */
+    place-self: auto;
     width: auto;
     margin: 30vh -16px 0;
     padding: 28px 16px 8px;
@@ -2120,7 +2165,6 @@ code.small {
     margin-top: 8px;
   }
   .repo-meta,
-  .brand-name,
   .grade-label {
     display: none;
   }

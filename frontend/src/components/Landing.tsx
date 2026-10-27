@@ -45,8 +45,19 @@ export function Landing() {
     <motion.section className="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
       <header className="land-nav">
         <a className="land-brand" href="/" aria-label="DepJenga home">
-          <img src="/logo-192.png" alt="" width={36} height={36} />
-          <span>DepJenga</span>
+          <img src="/logo-192.png" alt="" width={42} height={42} />
+          {/* the name stands on one tower layer, its last block already half pulled out */}
+          <span className="wordmark" aria-hidden>
+            <span className="wm-word">
+              <span className="wm-dep">dep</span>
+              <span className="wm-jenga">Jenga</span>
+            </span>
+            <span className="wm-layer">
+              <i />
+              <i />
+              <i className="wm-pulled" />
+            </span>
+          </span>
         </a>
         <a className="land-link" href={REPO_URL} target="_blank" rel="noreferrer">
           Source on GitHub <span aria-hidden>↗</span>

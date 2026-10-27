@@ -12,9 +12,8 @@ export function TopBar() {
   const gradeColor = GRADE_COLOR[s.grade] ?? '#ffd23f';
   return (
     <motion.header className="topbar" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }}>
-      <button className="brand" onClick={home} title="New scan">
-        <img className="brand-logo" src="/logo-192.png" alt="" width={30} height={30} />
-        <span className="brand-name">DepJenga</span>
+      <button className="brand" onClick={home} title="DepJenga: scan another repository" aria-label="DepJenga home, scan another repository">
+        <img className="brand-logo" src="/logo-192.png" alt="" width={50} height={50} />
       </button>
       <div className="repo-pill glass">
         <a href={r.repo.url} target="_blank" rel="noreferrer" className="repo-name">
